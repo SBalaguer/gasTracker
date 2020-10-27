@@ -1,14 +1,14 @@
 import React, {Component} from 'react';
 import './App.css';
-import ProjectData from './Components/ProjectData'
-import AddProject from './Components/AddProject'
-import Chart from './Components/Chart'
-import {Grid, Paper} from '@material-ui/core'
-import {Typography} from '@material-ui/core'
 
-// import {getData} from './Services/api-calls'
+import { BrowserRouter, Switch, Route } from 'react-router-dom';
 
-// import contractsInfo from './Static/contractInfo.json'
+import {Typography, Grid} from '@material-ui/core'
+import HomePage from './Components/HomePage'
+import Add from './Components/AddProject'
+import SingleProject from './Components/SingleProject'
+
+import {getSummary} from './Services/api-calls'
 
 
 export class App extends Component {
@@ -16,67 +16,69 @@ export class App extends Component {
   constructor() {
     super();
     this.state = {
-      loading: {},
-      projects:{},
-      show:{}
+      data:[]
     };
   }
 
-  setShow = (project) =>{
-    if(typeof this.state.show[project] !== 'undefined'){
-      const show = {...this.state.show, [project]:!this.state.show[project]}
-      this.setState({show})
-    }else{
-      const show = {...this.state.show, [project]:true}
-      this.setState({show})
+  async componentDidMount(){
+    try{
+      const summary = await getSummary();
+      const data = summary.data;
+      this.setState({data})
+    } catch (error) {
+      console.log(error)
     }
-  }
-
-  setLoading = (project) => {
-    if(typeof this.state.loading[project] !== 'undefined'){
-      const loading = {...this.state.loading, [project]:false}
-      this.setState({loading})
-    }else{
-      const loading = {...this.state.loading, [project]:true}
-      this.setState({loading})
-    }
-  }
-
-  setProject = (project) => {
-    const projects = {...this.state.projects, [Object.keys(project)[0]]:project[Object.keys(project)[0]]}
-    this.setState({projects})
   }
 
   render() {
-    const projects = this.state.projects
-    const projectsSelected = !!Object.keys(this.state.projects).length
+    const data = this.state.data
 
     return (
       <div className="App">
-      <Typography variant="h2" gutterBottom>
+      <Typography variant="h2" gutterBottom style={{marginTop: '0.5em'}}>
         Gas Calculation Tracker
       </Typography>
-      <Grid container spacing={2} style={{width:'90%', margin:'0 auto', height:'100%'}}>
-        <Grid item xs={4}>
-          <Paper>
-            <ProjectData loading={this.state.loading} setProject={this.setProject} setShow={this.setShow} state={this.state} setLoading={this.setLoading} />
-          </Paper>
-          {/* <Paper>
-            <AddProject />
-          </Paper> */}
-        </Grid>
-        <Grid item xs={8}>
-          {projectsSelected ? Object.keys(projects).map(projectName =>{
-          if(this.state.show[projectName]){
-          return (<Paper>
-            <Chart loading={this.state.loading[projectName]} project={projectName} data={this.state.projects[projectName]} />
-          </Paper>)
-          }else{
-            return(<></>)
-          }
-          }): <p>Please select a project</p>}
-        </Grid>
-        </Grid>
+      <div>
+      <Grid container spacing={2} style={{width:'70%', margin:'0 auto', height:'100%'}}>
+      <BrowserRouter>
+        <Switch>
+        <Route
+            path="/"
+            exact
+            render={props => (
+              <HomePage
+                data={data}
+                {...props}
+              />
+            )}
+          />
+        <Route
+            path="/add"
+            exact
+            render={props => (
+              <Add
+                data={data}
+                {...props}
+              />
+            )}
+          />
+        <Route
+            path="/:id"
+            exact
+            render={props => (
+              <SingleProject
+                data={data}
+                {...props}
+              />
+            )}
+          />
+        </Switch>
+        </BrowserRouter>
+      </Grid>
+      </div>
+      <Typography variant="overline" gutterBottom display="block">
+        <a href='https://www.santiagobalaguer.com' target="_blank" style={{color: "inherit", textDecoration:"none"}}>Santi Balaguer</a>
+      </Typography>
     </div>
     )
   }

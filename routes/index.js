@@ -3,6 +3,7 @@
 const { Router } = require('express');
 const axios = require('axios');
 const router = new Router();
+const uniswapData = require('../data/uniswap')
 //const data = require('../data/contractInfo.json');
 
 // const config = {
@@ -27,6 +28,40 @@ const router = new Router();
 //     return error
 //   }
 // }
+
+router.get('/uniswap-gas',(req,res,next)=>{
+  const data = uniswapData;
+  const aggregatedData = {};
+
+  data.map(contract =>{
+    contract.map(value=>{
+      if (!aggregatedData[value[0]/1000]) {
+        aggregatedData[value[0]/1000]={
+          ethPrice: value[2],
+          ethFeesSpent:value[7],
+          usdFeesSpent:value[8],
+          ethFeesUsed:value[9],
+          usdFeesUsed:value[10]
+        };
+      } else {
+        aggregatedData[value[0]/1000]={
+          ethPrice: value[2],
+          ethFeesSpent:aggregatedData[value[0]/1000].ethFeesSpent +value[7],
+          usdFeesSpent:aggregatedData[value[0]/1000].usdFeesSpent +value[8],
+          ethFeesUsed:aggregatedData[value[0]/1000].ethFeesUsed +value[9],
+          usdFeesUsed:aggregatedData[value[0]/1000].usdFeesUsed +value[10]
+        };
+      }
+    });
+  });
+//console.log(aggregatedData)
+const dates = Object.keys(aggregatedData).sort(function(a, b){return Number(a)-Number(b)});
+
+res.json({dates,aggregatedData});
+
+});
+
+
 
 router.get('/gas', async (req, res, next) => {
   try {
@@ -73,7 +108,6 @@ router.post('/gas', async (req, res, next) => {
         //const dayInfo = {};
         const response = await axios.get(`https://api.etherscan.io/api?module=account&action=txlist&address=${contract}&apikey=${process.env.API_KEY_ETHERSCAN}`)
         // res.json(response.data.result)
-        //console.log('this is the response',response)
         response.data.result.map(tx=>{
           const day = new Date(Number(tx.timeStamp)*1000).getDate();
           const month = new Date(Number(tx.timeStamp)*1000).getMonth()+1;
@@ -95,7 +129,6 @@ router.post('/gas', async (req, res, next) => {
       });
       await Promise.all(promises);
     }
-    //console.log(data);
     res.json(data);
   } catch (error) {
     console.log(error);
